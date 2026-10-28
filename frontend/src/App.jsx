@@ -1,3 +1,4 @@
+import TransactionInvestigation from "./TransactionInvestigation";
 import MlCsvDemo from "./MlCsvDemo";
 import ModelEvaluation from "./ModelEvaluation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -896,6 +897,7 @@ function App() {
               </button>
             </div>
           </section>
+          <MlCsvDemo />
 
           <footer className="app-footer">
             <span>© {new Date().getFullYear()} FraudShield</span>
@@ -904,7 +906,6 @@ function App() {
           </footer>
         </div>
       </main>
-<MlCsvDemo />
       {showForm && (
         <div className="modal-backdrop" onMouseDown={closeTransactionForm}>
           <section

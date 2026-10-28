@@ -2115,3 +2115,187 @@ button:not(:disabled) {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== FraudShield: Global Layout Fix ===== */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
+}
+
+/* Prevent accidental fixed-width page overflow */
+.app,
+.app-layout,
+.dashboard-layout,
+.dashboard-container,
+.main-content,
+.main-content-area,
+.content-area,
+.page-content,
+.workspace,
+.workspace-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Main content must shrink inside a sidebar layout */
+.main-content,
+.main-content-area,
+.content-area,
+.workspace-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Responsive dashboard grids */
+.stats-grid,
+.stat-cards,
+.dashboard-grid,
+.charts-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stats-grid,
+.stat-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.charts-grid {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .stats-grid,
+  .stat-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .charts-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-grid,
+  .stat-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main-content,
+  .main-content-area,
+  .content-area,
+  .workspace-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* ===== FraudShield: Precise Layout Correction ===== */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.app-shell {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.sidebar {
+  width: 252px;
+}
+
+/* Keep the workspace beside the fixed sidebar */
+.main-area {
+  width: calc(100% - 252px);
+  min-width: 0;
+  margin-left: 252px;
+}
+
+/* Use the full available workspace width */
+.page-content {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 29px 32px 24px;
+}
+
+/* Prevent wide children from pushing the page out of position */
+.page-content > *,
+.panel,
+.analytics-grid,
+.stats-grid,
+.summary-strip {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Medium screens */
+@media (max-width: 1250px) and (min-width: 701px) {
+  .sidebar {
+    width: 225px;
+  }
+
+  .main-area {
+    width: calc(100% - 225px);
+    margin-left: 225px;
+  }
+
+  .page-content {
+    padding: 24px;
+  }
+}
+
+/* Mobile: sidebar becomes an overlay */
+@media (max-width: 700px) {
+  .sidebar {
+    width: 270px;
+  }
+
+  .main-area {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .page-content {
+    padding: 19px 15px 16px;
+  }
+}
+
