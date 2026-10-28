@@ -1,0 +1,33 @@
+﻿# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node dependencies and build output
+node_modules/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Editor and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
