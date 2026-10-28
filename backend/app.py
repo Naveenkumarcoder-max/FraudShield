@@ -1,4 +1,5 @@
-
+from ml_api import ml_api
+from evaluation_api import evaluation_api
 import math
 
 from flask import Flask, jsonify, request
@@ -11,6 +12,8 @@ from database import (
 )
 
 app = Flask(__name__)
+app.register_blueprint(evaluation_api)
+app.register_blueprint(ml_api)
 CORS(app)
 
 initialize_database()

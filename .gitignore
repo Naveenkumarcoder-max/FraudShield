@@ -31,3 +31,11 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+# Large local training dataset
+backend/data/
+
+# Trained model artifact (keep local until deployment strategy is decided)
+backend/fraud_model.joblib
+backend/data/
+backend/fraud_model.joblib
+backend/data/creditcard.csv

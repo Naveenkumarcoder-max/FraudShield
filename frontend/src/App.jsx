@@ -1,4 +1,5 @@
-
+import MlCsvDemo from "./MlCsvDemo";
+import ModelEvaluation from "./ModelEvaluation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ShieldCheck,
@@ -903,7 +904,7 @@ function App() {
           </footer>
         </div>
       </main>
-
+<MlCsvDemo />
       {showForm && (
         <div className="modal-backdrop" onMouseDown={closeTransactionForm}>
           <section
