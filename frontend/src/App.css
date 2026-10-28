@@ -2298,4 +2298,22 @@ body {
     padding: 19px 15px 16px;
   }
 }
+.fraud-alerts-panel {
+  margin-top: 24px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid #e5e7eb;
+}
 
+.fraud-alert-item {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+}
+
+.fraud-alert-item p {
+  margin: 6px 0 0;
+}

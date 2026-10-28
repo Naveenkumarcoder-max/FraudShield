@@ -17,6 +17,25 @@ import "./TransactionInvestigation.css";
 
 const API_URL = "http://127.0.0.1:5000/api/transactions";
 
+async function fetchTransactions() {
+  const response = await fetch(API_URL);
+
+  if (!response.ok) {
+    throw new Error(`Backend returned HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const records = Array.isArray(payload)
+    ? payload
+    : payload.transactions ?? payload.data ?? payload.results ?? [];
+
+  if (!Array.isArray(records)) {
+    throw new Error("The API returned an unexpected transaction format.");
+  }
+
+  return records.map(normalizeRecord);
+}
+
 function normalizeStatus(value) {
   const status = String(value ?? "Safe").toLowerCase();
 
@@ -98,32 +117,7 @@ export default function TransactionInvestigation() {
     setError("");
 
     try {
-      const response = await fetch(API_URL);
-
-      if (!response.ok) {
-        throw new Error(`Backend returned HTTP ${response.status}`);
-      }
-
-      const payload = await response.json();
-
-      const records = Array.isArray(payload)
-        ? payload
-        : payload.transactions ?? payload.data ?? payload.results ?? [];
-
-      if (!Array.isArray(records)) {
-        throw new Error("The API returned an unexpected transaction format.");
-      }
-
-      const normalized = records.map(normalizeRecord);
-      setTransactions(normalized);
-
-      setSelected((current) =>
-        current
-          ? normalized.find(
-              (item) => String(item.id) === String(current.id)
-            ) ?? null
-          : null
-      );
+      updateTransactions(await fetchTransactions());
     } catch (err) {
       setError(
         err.message ||
@@ -135,8 +129,40 @@ export default function TransactionInvestigation() {
     }
   }
 
+  function updateTransactions(normalized) {
+    setTransactions(normalized);
+    setSelected((current) =>
+      current
+        ? normalized.find(
+            (item) => String(item.id) === String(current.id)
+          ) ?? null
+        : null
+    );
+  }
+
   useEffect(() => {
-    loadTransactions();
+    let cancelled = false;
+
+    async function loadInitialTransactions() {
+      try {
+        const records = await fetchTransactions();
+        if (!cancelled) updateTransactions(records);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err.message ||
+              "Unable to load transactions. Check that the Flask backend is running."
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadInitialTransactions();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredTransactions = useMemo(() => {

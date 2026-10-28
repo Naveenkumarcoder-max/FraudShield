@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FraudShield | Risk Analyzer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Inter, Arial, sans-serif;
+      background: #0b1020; color: #edf2ff; min-height: 100vh;
+    }
+    header {
+      padding: 22px 6%; border-bottom: 1px solid #27304a;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .brand { font-size: 22px; font-weight: 800; }
+    .brand span { color: #48e0b4; }
+    .tag { color: #9ba9c8; font-size: 13px; }
+    main { max-width: 1100px; margin: auto; padding: 36px 20px; }
+    h1 { margin: 0 0 10px; font-size: clamp(27px, 4vw, 38px); }
+    .sub { color: #a5b1ce; line-height: 1.6; margin-bottom: 28px; }
+    .layout {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+    .card {
+      background: #131b30; border: 1px solid #293552;
+      border-radius: 18px; padding: 24px;
+    }
+    h2 { font-size: 18px; margin: 0 0 22px; }
+    label { display: block; color: #bdc8df; font-size: 13px; margin-bottom: 8px; }
+    input, select {
+      width: 100%; padding: 12px; border-radius: 9px;
+      border: 1px solid #35415f; background: #0c1428;
+      color: #fff; outline: none; font-size: 15px;
+    }
+    input:focus, select:focus { border-color: #48e0b4; }
+    .field { margin-bottom: 18px; }
+    button {
+      width: 100%; padding: 14px; border: 0; border-radius: 10px;
+      background: #48e0b4; color: #071a19; font-size: 15px;
+      font-weight: 800; cursor: pointer;
+    }
+    button:hover { background: #73f1ce; }
+    .result { text-align: center; }
+    .gauge {
+      width: 170px; height: 170px; border-radius: 50%;
+      margin: 10px auto 18px; display: grid; place-items: center;
+      background: conic-gradient(#48e0b4 0deg, #27304a 0deg);
+      position: relative;
+    }
+    .gauge::before {
+      content: ""; position: absolute; width: 140px; height: 140px;
+      border-radius: 50%; background: #131b30;
+    }
+    .gauge-inner { position: relative; z-index: 1; }
+    .score { font-size: 43px; font-weight: 800; }
+    .outof { color: #9ba9c8; font-size: 12px; }
+    .level { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .description { color: #a5b1ce; font-size: 13px; line-height: 1.5; }
+    .factors { text-align: left; margin-top: 25px; }
+    .factor {
+      padding: 12px 0; border-bottom: 1px solid #293552;
+      font-size: 13px; display: flex; gap: 10px;
+    }
+    .factor:last-child { border: 0; }
+    .history { margin-top: 20px; }
+    .history-item {
+      padding: 12px 0; border-bottom: 1px solid #293552;
+      display: flex; justify-content: space-between; gap: 12px;
+      font-size: 13px;
+    }
+    .muted { color: #9ba9c8; }
+    .disclaimer { color: #8997b6; font-size: 12px; line-height: 1.6; margin-top: 22px; }
+    @media (max-width: 720px) {
+      .layout { grid-template-columns: 1fr; }
+      header { padding: 18px 20px; }
+      main { padding-top: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">🛡️ Fraud<span>Shield</span></div>
+    <div class="tag">TRANSACTION RISK ANALYZER · DEMO</div>
+  </header>
+
+  <main>
+    <h1>Real-Time Fraud Risk Score</h1>
+    <p class="sub">
+      Assess transaction risk using transaction amount, activity frequency,
+      location, and device indicators.
+    </p>
+
+    <div class="layout">
+      <section class="card">
+        <h2>Transaction Details</h2>
+        <form id="riskForm">
+          <div class="field">
+            <label for="transactionId">Transaction ID</label>
+            <input id="transactionId" placeholder="TXN-1001" maxlength="40" />
+          </div>
+          <div class="field">
+            <label for="amount">Transaction amount (₹)</label>
+            <input id="amount" type="number" min="0" step="0.01"
+              placeholder="5000" required />
+          </div>
+          <div class="field">
+            <label for="frequency">Transactions in the last hour</label>
+            <input id="frequency" type="number" min="1" max="10000"
+              value="1" required />
+          </div>
+          <div class="field">
+            <label for="location">Location check</label>
+            <select id="location">
+              <option value="known">Usual location</option>
+              <option value="unknown">Unusual location</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="device">Device check</label>
+            <select id="device">
+              <option value="known">Recognized device</option>
+              <option value="unknown">New or unrecognized device</option>
+            </select>
+          </div>
+          <button type="submit">Analyze Transaction Risk →</button>
+        </form>
+        <p class="disclaimer">
+          Demo only: use fictional transaction details. This rule-based score
+          is not a validated fraud probability or a substitute for a trained model.
+        </p>
+      </section>
+
+      <section class="card result" aria-live="polite">
+        <h2>Risk Assessment</h2>
+        <div class="gauge" id="gauge">
+          <div class="gauge-inner">
+            <div class="score" id="score">—</div>
+            <div class="outof">OUT OF 100</div>
+          </div>
+        </div>
+        <div class="level" id="level">Awaiting analysis</div>
+        <div class="description" id="description">
+          Enter transaction details and analyze to see the risk assessment.
+        </div>
+        <div class="factors" id="factors"></div>
+      </section>
+    </div>
+
+    <section class="card history">
+      <h2>Recent Analyses</h2>
+      <div id="historyList" class="muted">Your analyses will appear here.</div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("riskForm");
+    const history = [];
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const amount = Number(document.getElementById("amount").value);
+      const frequency = Number(document.getElementById("frequency").value);
+      const location = document.getElementById("location").value;
+      const device = document.getElementById("device").value;
+      const transactionId =
+        document.getElementById("transactionId").value.trim() ||
+        "TXN-" + Date.now().toString().slice(-8);
+
+      if (!Number.isFinite(amount) || amount < 0 ||
+          !Number.isInteger(frequency) || frequency < 1 ||
+          frequency > 10000) {
+        alert("Enter a valid non-negative amount and a whole-number frequency from 1 to 10000.");
+        return;
+      }
+
+      let risk = 5;
+      const factors = [];
+
+      if (amount >= 100000) {
+        risk += 35;
+        factors.push("Very high transaction amount: +35");
+      } else if (amount >= 50000) {
+        risk += 25;
+        factors.push("High transaction amount: +25");
+      } else if (amount >= 10000) {
+        risk += 12;
+        factors.push("Elevated transaction amount: +12");
+      } else {
+        factors.push("Amount below the demo thresholds: +0");
+      }
+
+      if (frequency >= 10) {
+        risk += 30;
+        factors.push("Very frequent transactions: +30");
+      } else if (frequency >= 5) {
+        risk += 20;
+        factors.push("Frequent transactions: +20");
+      } else if (frequency >= 3) {
+        risk += 10;
+        factors.push("Multiple transactions in one hour: +10");
+      } else {
+        factors.push("Low transaction frequency: +0");
+      }
+
+      if (location === "unknown") {
+        risk += 20;
+        factors.push("Unusual location selected: +20");
+      } else {
+        factors.push("Usual location selected: +0");
+      }
+
+      if (device === "unknown") {
+        risk += 20;
+        factors.push("Unrecognized device selected: +20");
+      } else {
+        factors.push("Recognized device selected: +0");
+      }
+
+      risk = Math.min(100, risk);
+
+      let level, color, explanation;
+      if (risk >= 60) {
+        level = "High Risk";
+        color = "#ff6376";
+        explanation = "Several risk indicators are present. Review this transaction carefully.";
+      } else if (risk >= 30) {
+        level = "Medium Risk";
+        color = "#ffbd4a";
+        explanation = "Some risk indicators are present. Additional verification may be appropriate.";
+      } else {
+        level = "Low Risk";
+        color = "#48e0b4";
+        explanation = "Few risk indicators were selected. This does not guarantee the transaction is safe.";
+      }
+
+      document.getElementById("score").textContent = risk;
+      document.getElementById("level").textContent = level;
+      document.getElementById("level").style.color = color;
+      document.getElementById("description").textContent = explanation;
+      document.getElementById("gauge").style.background =
+        `conic-gradient(${color} ${risk * 3.6}deg, #27304a ${risk * 3.6}deg)`;
+
+      const factorsContainer = document.getElementById("factors");
+      factorsContainer.replaceChildren();
+
+      factors.forEach(function (factor) {
+        const row = document.createElement("div");
+        row.className = "factor";
+        row.textContent = "• " + factor;
+        factorsContainer.appendChild(row);
+      });
+
+      history.unshift({
+        id: transactionId,
+        amount: amount,
+        risk: risk,
+        level: level,
+        color: color,
+        time: new Date().toLocaleTimeString()
+      });
+
+      if (history.length > 5) history.pop();
+
+      const historyList = document.getElementById("historyList");
+      historyList.replaceChildren();
+
+      history.forEach(function (item) {
+        const row = document.createElement("div");
+        row.className = "history-item";
+
+        const details = document.createElement("span");
+        details.textContent =
+          `${item.id} · ₹${item.amount.toLocaleString("en-IN")} · ${item.time}`;
+
+        const result = document.createElement("strong");
+        result.textContent = `${item.risk}/100 · ${item.level}`;
+        result.style.color = item.color;
+
+        row.append(details, result);
+        historyList.appendChild(row);
+      });
+    });
+  </script>
+</body>
+</html>

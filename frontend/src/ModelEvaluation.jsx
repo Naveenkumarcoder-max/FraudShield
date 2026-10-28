@@ -4,6 +4,17 @@ import "./ModelEvaluation.css";
 
 const API_URL = "http://127.0.0.1:5000/api/ml/evaluation";
 
+async function fetchEvaluation() {
+  const response = await fetch(API_URL);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Unable to load model evaluation.");
+  }
+
+  return data;
+}
+
 export default function ModelEvaluation() {
   const [evaluation, setEvaluation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,14 +25,7 @@ export default function ModelEvaluation() {
     setError("");
 
     try {
-      const response = await fetch(API_URL);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Unable to load model evaluation.");
-      }
-
-      setEvaluation(data);
+      setEvaluation(await fetchEvaluation());
     } catch (err) {
       setError(
         err.message ||
@@ -33,8 +37,29 @@ export default function ModelEvaluation() {
   }, []);
 
   useEffect(() => {
-    loadEvaluation();
-  }, [loadEvaluation]);
+    let cancelled = false;
+
+    async function loadInitialEvaluation() {
+      try {
+        const result = await fetchEvaluation();
+        if (!cancelled) setEvaluation(result);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err.message ||
+              "Could not connect to the backend. Check that Flask is running."
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadInitialEvaluation();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const metrics = evaluation
     ? [

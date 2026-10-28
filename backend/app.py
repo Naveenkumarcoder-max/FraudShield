@@ -1,3 +1,5 @@
+from risk_engine import risk_engine
+from fraud_alerts import alerts_bp, create_alert
 from ml_api import ml_api
 from evaluation_api import evaluation_api
 import math
@@ -12,6 +14,9 @@ from database import (
 )
 
 app = Flask(__name__)
+app.register_blueprint(alerts_bp)
+from case_management import case_bp
+app.register_blueprint(case_bp)
 app.register_blueprint(evaluation_api)
 app.register_blueprint(ml_api)
 CORS(app)
@@ -261,6 +266,22 @@ def create_transaction():
             "success": False,
             "error": "Unable to save transaction",
         }), 500
+
+    # Generate an alert for transactions requiring attention.
+    if status in {"Fraud", "Review"}:
+        try:
+            create_alert(
+                transaction_id=transaction_id,
+                risk_level=status,
+                risk_score=risk_score,
+                message="; ".join(analysis["risk_reasons"]),
+            )
+        except Exception:
+            # Do not lose a saved transaction if alert creation fails.
+            app.logger.exception(
+                "Transaction saved, but alert creation failed for %s",
+                transaction_id,
+            )
 
     return jsonify({
         "success": True,

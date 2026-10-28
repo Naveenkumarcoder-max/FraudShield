@@ -1,13 +1,13 @@
-import TransactionInvestigation from "./TransactionInvestigation";
+import CaseManagement from "../CaseManagement";
+import DashboardCharts from "./DashboardCharts";
 import MlCsvDemo from "./MlCsvDemo";
-import ModelEvaluation from "./ModelEvaluation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+
 import {
   ShieldCheck,
   LayoutDashboard,
   ArrowLeftRight,
   ShieldAlert,
-  Activity,
   Search,
   Bell,
   Sun,
@@ -28,28 +28,17 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
   getDashboardStats,
   getTransactions,
   createTransaction,
 } from "./api";
 import "./App.css";
 
-const NAV_ITEMS = [
+const NAV_ITEMS =[
   { label: "Overview", icon: LayoutDashboard },
   { label: "Transactions", icon: ArrowLeftRight },
   { label: "Risk monitoring", icon: ShieldAlert },
+  { label: "Fraud Alerts", icon: Bell },
 ];
 
 const EMPTY_FORM = {
@@ -67,6 +56,18 @@ function getTransactionList(payload) {
   if (Array.isArray(payload?.results)) return payload.results;
 
   return [];
+}
+
+async function fetchDashboardData() {
+  const [statsResponse, transactionResponse] = await Promise.all([
+    getDashboardStats(),
+    getTransactions(),
+  ]);
+
+  return {
+    stats: statsResponse ?? {},
+    transactions: getTransactionList(transactionResponse).map(normalizeTransaction),
+  };
 }
 
 function normalizeTransaction(item, index) {
@@ -183,6 +184,60 @@ function buildActivityData(transactions) {
 }
 
 function App() {
+  const [fraudAlerts, setFraudAlerts] = useState([]);
+const [alertsLoading, setAlertsLoading] = useState(true);
+const [alertsError, setAlertsError] = useState("");
+useEffect(() => {
+  const fetchAlerts = async () => {
+    try {
+      setAlertsLoading(true);
+      setAlertsError("");
+
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/alerts"
+      );
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const alerts = Array.isArray(data)
+        ? data
+        : Array.isArray(data.alerts)
+          ? data.alerts
+          : [];
+
+      setFraudAlerts(alerts);
+    } catch (error) {
+      setAlertsError(error.message || "Unable to load alerts.");
+    } finally {
+      setAlertsLoading(false);
+    }
+  };
+
+  fetchAlerts();
+}, []);
+useEffect(() => {
+  fetch("http://127.0.0.1:5000/api/alerts")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to load fraud alerts");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      setFraudAlerts(Array.isArray(data) ? data : data.alerts || []);
+      setAlertsError("");
+    })
+    .catch((error) => {
+      setAlertsError(error.message);
+    })
+    .finally(() => {
+      setAlertsLoading(false);
+    });
+}, []);
   const [stats, setStats] = useState({});
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,15 +258,9 @@ function App() {
     if (showSpinner) setRefreshing(true);
 
     try {
-      const [statsResponse, transactionResponse] = await Promise.all([
-        getDashboardStats(),
-        getTransactions(),
-      ]);
-
-      setStats(statsResponse ?? {});
-      setTransactions(
-        getTransactionList(transactionResponse).map(normalizeTransaction)
-      );
+      const dashboard = await fetchDashboardData();
+      setStats(dashboard.stats);
+      setTransactions(dashboard.transactions);
       setBackendError("");
     } catch (error) {
       setBackendError(
@@ -224,8 +273,32 @@ function App() {
   }, []);
 
   useEffect(() => {
-    refreshDashboard(false);
-  }, [refreshDashboard]);
+    let cancelled = false;
+
+    async function loadDashboard() {
+      try {
+        const dashboard = await fetchDashboardData();
+        if (cancelled) return;
+
+        setStats(dashboard.stats);
+        setTransactions(dashboard.transactions);
+        setBackendError("");
+      } catch (error) {
+        if (cancelled) return;
+        setBackendError(
+          error?.message || "Could not connect to the FraudShield backend."
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -368,6 +441,25 @@ function App() {
   };
 
   const selectNavigation = (label) => {
+
+    const selectNavigation = (label) => {
+  setActiveNav(label);
+  setMobileSidebarOpen(false);
+
+  if (label === "Transactions") {
+    document.getElementById("transactions")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  } else if (label === "Risk monitoring") {
+    document.getElementById("risk-monitoring")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  } else if (label === "Overview") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
     setActiveNav(label);
     setMobileSidebarOpen(false);
 
@@ -381,7 +473,7 @@ function App() {
         behavior: "smooth",
         block: "start",
       });
-    } else {
+    } else if (label === "Overview") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
@@ -472,6 +564,10 @@ function App() {
             </div>
           </div>
 
+
+
+
+
           <div className="topbar-actions">
             <div className={`connection-pill ${backendError ? "connection-offline" : ""}`}>
               <span className="live-dot" />
@@ -503,8 +599,38 @@ function App() {
             </button>
           </div>
         </header>
-
+        
         <div className="page-content">
+          {activeNav === "Fraud Alerts" ? (
+            <FraudAlerts
+              onOpenCaseManagement={() => {
+                setActiveNav("Overview");
+                setNotice(
+                  "Open Case Management below the dashboard to investigate this alert."
+                );
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          ) : (
+            <>
+              {activeNav === "Fraud Alerts" ? (
+  <FraudAlerts
+    onOpenCaseManagement={() => {
+      setActiveNav("Overview");
+      setNotice(
+        "Open Case Management below the dashboard to investigate this alert."
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }}
+  />
+) : (
+  <>
+    <CaseManagement />
+
+    {/* Keep all your existing dashboard content here */}
+  </>
+)}
+
           {backendError && (
             <div className="alert-banner">
               <AlertCircle size={19} />
@@ -587,153 +713,14 @@ function App() {
             />
           </section>
 
-          <section className="analytics-grid">
-            <article className="panel activity-panel">
-              <div className="panel-heading">
-                <div>
-                  <h2>Transaction activity</h2>
-                  <p>Daily transactions from the last seven days</p>
-                </div>
-                <span className="panel-icon">
-                  <Activity size={18} />
-                </span>
-              </div>
-
-              <div className="chart-legend">
-                <span><i className="legend-blue" /> Transactions</span>
-                <span><i className="legend-red" /> Flagged / review</span>
-              </div>
-
-              <div className="activity-chart">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={activityData}
-                    margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient id="transactionFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#5577f5" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#5577f5" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="riskFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f04452" stopOpacity={0.13} />
-                        <stop offset="95%" stopColor="#f04452" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="var(--chart-grid)" />
-                    <XAxis
-                      dataKey="day"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "var(--muted)", fontSize: 12 }}
-                      dy={9}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: "var(--muted)", fontSize: 11 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--panel)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 12,
-                        color: "var(--text)",
-                        boxShadow: "0 8px 24px rgba(20, 30, 60, 0.08)",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="transactions"
-                      name="Transactions"
-                      stroke="#5577f5"
-                      strokeWidth={2.5}
-                      fill="url(#transactionFill)"
-                      activeDot={{ r: 5, strokeWidth: 0 }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="flagged"
-                      name="Flagged / review"
-                      stroke="#f04452"
-                      strokeWidth={2}
-                      fill="url(#riskFill)"
-                      activeDot={{ r: 4, strokeWidth: 0 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              {transactions.length === 0 && !loading && (
-                <p className="chart-empty-note">
-                  Add transactions to see activity recorded in your database.
-                </p>
-              )}
-            </article>
-
-            <article className="panel risk-panel" id="risk-monitoring">
-              <div className="panel-heading">
-                <div>
-                  <h2>Risk overview</h2>
-                  <p>Current transaction classifications</p>
-                </div>
-                <span className="panel-icon panel-icon-purple">
-                  <ShieldCheck size={18} />
-                </span>
-              </div>
-
-              <div className="risk-chart-wrap">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={riskData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={64}
-                      outerRadius={87}
-                      paddingAngle={4}
-                      stroke="none"
-                    >
-                      {riskData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--panel)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 12,
-                        color: "var(--text)",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="risk-chart-center">
-                  <strong>{computed.totalTransactions}</strong>
-                  <span>Transactions</span>
-                </div>
-              </div>
-
-              <div className="risk-legend">
-                {riskData.map((item) => (
-                  <div className="risk-legend-row" key={item.name}>
-                    <span className="risk-legend-label">
-                      <i style={{ backgroundColor: item.color }} />
-                      {item.name}
-                    </span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
-              <div className="risk-footnote">
-                <ShieldCheck size={15} />
-                <span>Based on current database records</span>
-              </div>
-            </article>
-          </section>
+          <Suspense fallback={<div className="analytics-grid" aria-busy="true">Loading charts...</div>}>
+            <DashboardCharts
+              activityData={activityData}
+              riskData={riskData}
+              totalTransactions={computed.totalTransactions}
+              showActivityEmptyMessage={!loading && transactions.length === 0}
+            />
+          </Suspense>
 
           <section className="summary-strip">
             <div className="summary-icon">
@@ -904,6 +891,8 @@ function App() {
             <span>Transaction monitoring dashboard</span>
             <span className="footer-secure"><ShieldCheck size={14} /> Security workspace</span>
           </footer>
+            </>
+          )}
         </div>
       </main>
       {showForm && (
@@ -999,6 +988,31 @@ function App() {
                 </div>
               </label>
 
+              <section className="fraud-alerts-panel">
+  <h2>Fraud Alerts</h2>
+
+  {alertsLoading && <p>Loading alerts...</p>}
+
+  {alertsError && <p>{alertsError}</p>}
+
+  {!alertsLoading &&
+    !alertsError &&
+    fraudAlerts.length === 0 && (
+      <p>No fraud alerts found.</p>
+    )}
+
+  {fraudAlerts.map((alert, index) => (
+    <div className="fraud-alert-item" key={alert.id ?? index}>
+      <strong>
+        {alert.title || alert.message || "Fraud alert"}
+      </strong>
+      <p>Severity: {alert.severity || alert.risk_level || "Unknown"}</p>
+      <p>Status: {alert.status || "Open"}</p>
+    </div>
+  ))}
+</section>
+
+
               {formError && (
                 <div className="form-alert">
                   <AlertCircle size={17} />
@@ -1056,6 +1070,7 @@ function App() {
         </div>
       )}
     </div>
+
   );
 }
 
