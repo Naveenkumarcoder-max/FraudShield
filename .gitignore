@@ -39,3 +39,5 @@ backend/fraud_model.joblib
 backend/data/
 backend/fraud_model.joblib
 backend/data/creditcard.csv
+.vercel
+.env*
