@@ -1,9 +1,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import "./ModelEvaluation.css";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://fraud-shield-sepia.vercel.app"
+    : "http://127.0.0.1:5000");
 
-const API_URL = "http://127.0.0.1:5000/api/ml/evaluation";
-
+const API_URL = `${API_BASE_URL}/api/ml/evaluation`;
 async function fetchEvaluation() {
   const response = await fetch(API_URL);
   const data = await response.json();
