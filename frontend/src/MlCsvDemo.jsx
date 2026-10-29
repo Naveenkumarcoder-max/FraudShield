@@ -1,9 +1,13 @@
 
 import { useState } from "react";
 import "./MlCsvDemo.css";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://fraud-shield-sepia.vercel.app"
+    : "http://127.0.0.1:5000");
 
-const API_URL = "http://127.0.0.1:5000/api/ml/predict-csv";
-
+const API_URL = `${API_BASE_URL}/api/ml/predict-csv`;
 export default function MlCsvDemo() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);

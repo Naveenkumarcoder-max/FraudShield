@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./FraudAlerts.css";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://fraud-shield-sepia.vercel.app"
+    : "http://127.0.0.1:5000");
 
-const API_URL = "http://127.0.0.1:5000/api/alerts";
+const API_URL = `${API_BASE_URL}/api/alerts`;
 
 async function fetchAlerts() {
   const response = await fetch(API_URL);
