@@ -1,10 +1,12 @@
 
 import sqlite3
 from pathlib import Path
+import os
 
-DATABASE_PATH = Path(__file__).parent / "fraudshield.db"
-
-
+if os.environ.get("VERCEL"):
+    DATABASE_PATH = Path("/tmp/fraudshield.db")
+else:
+    DATABASE_PATH = Path(__file__).resolve().parent / "fraudshield.db"
 def get_connection():
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row

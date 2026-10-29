@@ -2,10 +2,13 @@
 from flask import Blueprint, jsonify
 import sqlite3
 from pathlib import Path
+import os
 
 alerts_bp = Blueprint("alerts", __name__)
-
-DB_PATH = Path(__file__).resolve().parent / "fraud_alerts.db"
+if os.environ.get("VERCEL"):
+    DB_PATH = Path("/tmp/fraud_alerts.db")
+else:
+    DB_PATH = Path(__file__).resolve().parent / "fraud_alerts.db"
 
 
 def init_alerts_db():
