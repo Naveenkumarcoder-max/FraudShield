@@ -1,39 +1,241 @@
+```gitignore
+# ==========================================================
+# FRAUDSHIELD - PROJECT ROOT GITIGNORE
+# Python + Flask + React + Vite + Node.js
+# ==========================================================
 
-# Python cache files
+
+# ----------------------------------------------------------
+# 1. PYTHON CACHE FILES
+# ----------------------------------------------------------
+
 __pycache__/
 *.py[cod]
+*$py.class
 *.pyo
-.pytest_cache/
+*.pyd
 
-# Python virtual environments
+# Python build files
+build/
+dist/
+.eggs/
+*.egg-info/
+wheels/
+pip-wheel-metadata/
+
+
+# ----------------------------------------------------------
+# 2. PYTHON VIRTUAL ENVIRONMENTS
+# ----------------------------------------------------------
+
 .venv/
 venv/
 env/
+ENV/
+.python-version
 
-# Environment variables and secrets
+
+# ----------------------------------------------------------
+# 3. PYTHON TESTING AND COVERAGE
+# ----------------------------------------------------------
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+coverage.xml
+nosetests.xml
+
+
+# ----------------------------------------------------------
+# 4. FLASK AND APPLICATION LOGS
+# ----------------------------------------------------------
+
+instance/
+*.log
+logs/
+flask.log
+debug.log
+
+
+# ----------------------------------------------------------
+# 5. ENVIRONMENT VARIABLES AND SECRETS
+# ----------------------------------------------------------
+
 .env
 .env.*
 !.env.example
+!.env.sample
 
-# Node.js dependencies
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json
+service-account.json
+
+
+# ----------------------------------------------------------
+# 6. DATABASE FILES
+# ----------------------------------------------------------
+
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-journal
+
+# Local database backups
+*.db-backup
+*.sqlite-backup
+database_backup/
+
+
+# ----------------------------------------------------------
+# 7. NODE.JS AND REACT
+# ----------------------------------------------------------
+
 node_modules/
-
-# Frontend build output
-dist/
-
-# Logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
-# SQLite database files
-*.db
-*.sqlite
-*.sqlite3
+# Package manager caches
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
 
-# Editor and operating system files
-.vscode/
+# React and Vite build output
+frontend/dist/
+frontend/build/
+dist/
+build/
+
+# Vite temporary files
+.vite/
+*.local
+
+
+# ----------------------------------------------------------
+# 8. FRONTEND ENVIRONMENT FILES
+# ----------------------------------------------------------
+
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!frontend/.env.sample
+
+
+# ----------------------------------------------------------
+# 9. BACKEND ENVIRONMENT FILES
+# ----------------------------------------------------------
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.sample
+
+
+# ----------------------------------------------------------
+# 10. EDITOR AND IDE FILES
+# ----------------------------------------------------------
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
 .idea/
-.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+
+# ----------------------------------------------------------
+# 11. OPERATING SYSTEM FILES
+# ----------------------------------------------------------
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+
+# ----------------------------------------------------------
+# 12. TEMPORARY AND BACKUP FILES
+# ----------------------------------------------------------
+
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.orig
+*.old
+*.backup
+
+
+# ----------------------------------------------------------
+# 13. JUPYTER NOTEBOOK CHECKPOINTS
+# ----------------------------------------------------------
+
+.ipynb_checkpoints/
+
+
+# ----------------------------------------------------------
+# 14. MACHINE LEARNING MODEL ARTIFACTS
+# ----------------------------------------------------------
+
+# Generated model files - ignore large trained artifacts
+*.joblib
+*.pkl
+*.pickle
+*.h5
+*.keras
+*.onnx
+*.pt
+*.pth
+
+# Model output folders
+model_outputs/
+training_outputs/
+
+
+# ----------------------------------------------------------
+# 15. GENERATED REPORTS AND EXPORTS
+# ----------------------------------------------------------
+
+# Ignore generated reports, but keep the folder structure if needed
+generated_reports/
+exports/
+
+
+# ----------------------------------------------------------
+# 16. LOCAL TEST AND DEVELOPMENT FILES
+# ----------------------------------------------------------
+
+test_output/
+tmp/
+temp/
+.cache/
+.cache-loader/
+
+
+# ----------------------------------------------------------
+# END OF FRAUDSHIELD GITIGNORE
+# ----------------------------------------------------------
+```
