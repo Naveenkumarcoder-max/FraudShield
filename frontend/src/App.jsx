@@ -1,7 +1,11 @@
+import GeographicFraudAnalysis from "./GeographicFraudAnalysis";
+import jsPDF from "jspdf";
+import FraudExplanation from "./FraudExplanation";
 import CaseManagement from "../CaseManagement";
 import DashboardCharts from "./DashboardCharts";
+import FraudAlerts from "./FraudAlerts";
 import MlCsvDemo from "./MlCsvDemo";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ShieldCheck,
@@ -35,6 +39,7 @@ import {
 import "./App.css";
 
 const NAV_ITEMS =[
+  { label: "Geographic Analysis", icon: MapPin },
   { label: "Overview", icon: LayoutDashboard },
   { label: "Transactions", icon: ArrowLeftRight },
   { label: "Risk monitoring", icon: ShieldAlert },
@@ -101,6 +106,12 @@ function normalizeTransaction(item, index) {
     paymentMethod:
       item.payment_method ?? item.category ?? item.transaction_type ?? "Other",
     location: item.location ?? item.merchant ?? item.merchant_name ?? "Unknown",
+    latitude: Number(
+      item.latitude ?? item.lat ?? item.coordinates?.latitude
+    ),
+    longitude: Number(
+      item.longitude ?? item.lng ?? item.lon ?? item.coordinates?.longitude
+    ),
     status,
     riskScore: Number(item.risk_score ?? item.risk ?? 0),
     date:
@@ -184,60 +195,6 @@ function buildActivityData(transactions) {
 }
 
 function App() {
-  const [fraudAlerts, setFraudAlerts] = useState([]);
-const [alertsLoading, setAlertsLoading] = useState(true);
-const [alertsError, setAlertsError] = useState("");
-useEffect(() => {
-  const fetchAlerts = async () => {
-    try {
-      setAlertsLoading(true);
-      setAlertsError("");
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://fraud-shield-sepia.vercel.app" : "http://127.0.0.1:5000")}/api/alerts`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      const alerts = Array.isArray(data)
-        ? data
-        : Array.isArray(data.alerts)
-          ? data.alerts
-          : [];
-
-      setFraudAlerts(alerts);
-    } catch (error) {
-      setAlertsError(error.message || "Unable to load alerts.");
-    } finally {
-      setAlertsLoading(false);
-    }
-  };
-
-  fetchAlerts();
-}, []);
-useEffect(() => {
-  fetch(`${import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "https://fraud-shield-sepia.vercel.app" : "http://127.0.0.1:5000")}/api/alerts`)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to load fraud alerts");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      setFraudAlerts(Array.isArray(data) ? data : data.alerts || []);
-      setAlertsError("");
-    })
-    .catch((error) => {
-      setAlertsError(error.message);
-    })
-    .finally(() => {
-      setAlertsLoading(false);
-    });
-}, []);
   const [stats, setStats] = useState({});
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -253,6 +210,7 @@ useEffect(() => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   const refreshDashboard = useCallback(async (showSpinner = true) => {
     if (showSpinner) setRefreshing(true);
@@ -441,25 +399,6 @@ useEffect(() => {
   };
 
   const selectNavigation = (label) => {
-
-    const selectNavigation = (label) => {
-  setActiveNav(label);
-  setMobileSidebarOpen(false);
-
-  if (label === "Transactions") {
-    document.getElementById("transactions")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  } else if (label === "Risk monitoring") {
-    document.getElementById("risk-monitoring")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  } else if (label === "Overview") {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-};
     setActiveNav(label);
     setMobileSidebarOpen(false);
 
@@ -473,9 +412,121 @@ useEffect(() => {
         behavior: "smooth",
         block: "start",
       });
+    } else if (label === "Geographic Analysis") {
+      document.getElementById("geographic-analysis")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     } else if (label === "Overview") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  };
+
+  const exportTransactionsCSV = () => {
+    if (!filteredTransactions.length) {
+      setNotice("No transactions available to export.");
+      return;
+    }
+
+    const total = filteredTransactions.length;
+    const flagged = filteredTransactions.filter(
+      (transaction) => transaction.status === "Flagged"
+    ).length;
+    const safe = filteredTransactions.filter(
+      (transaction) => transaction.status === "Safe"
+    ).length;
+    const review = filteredTransactions.filter(
+      (transaction) => transaction.status === "Review"
+    ).length;
+    const report = [
+      ["FRAUDSHIELD - FRAUD SUMMARY REPORT"],
+      ["Total Transactions", total],
+      ["Flagged Transactions", flagged],
+      ["Safe Transactions", safe],
+      ["Transactions Under Review", review],
+      ["Fraud Rate", `${((flagged / total) * 100).toFixed(2)}%`],
+      [],
+      [
+        "Transaction ID",
+        "Amount",
+        "Payment Method",
+        "Location",
+        "Risk Score",
+        "Status",
+        "Date",
+      ],
+      ...filteredTransactions.map((transaction) => [
+        transaction.id ?? "",
+        transaction.amount ?? 0,
+        transaction.paymentMethod ?? "",
+        transaction.location ?? "",
+        transaction.riskScore ?? 0,
+        transaction.status ?? "",
+        transaction.date ?? "",
+      ]),
+    ];
+    const csvContent = report
+      .map((row) =>
+        row
+          .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+    const url = URL.createObjectURL(
+      new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    );
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "FraudShield_Fraud_Summary_Report.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportTransactionsPDF = () => {
+    if (!filteredTransactions.length) {
+      setNotice("No transactions available to export.");
+      return;
+    }
+
+    const doc = new jsPDF();
+    const total = filteredTransactions.length;
+    const flagged = filteredTransactions.filter(
+      (transaction) => transaction.status === "Flagged"
+    ).length;
+    const safe = filteredTransactions.filter(
+      (transaction) => transaction.status === "Safe"
+    ).length;
+    const review = filteredTransactions.filter(
+      (transaction) => transaction.status === "Review"
+    ).length;
+
+    doc.setFontSize(20);
+    doc.text("FraudShield - Fraud Report", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 14, 30);
+    doc.text(`Total Transactions: ${total}`, 14, 43);
+    doc.text(`Flagged Transactions: ${flagged}`, 14, 51);
+    doc.text(`Safe Transactions: ${safe}`, 14, 59);
+    doc.text(`Under Review: ${review}`, 14, 67);
+    doc.text(`Fraud Rate: ${((flagged / total) * 100).toFixed(2)}%`, 14, 75);
+
+    let y = 90;
+    doc.setFontSize(9);
+    filteredTransactions.forEach((transaction, index) => {
+      const line = `${index + 1}. ${transaction.id ?? "N/A"} | INR ${transaction.amount ?? 0} | Risk: ${transaction.riskScore ?? 0} | ${transaction.status ?? "N/A"}`;
+      const wrappedLines = doc.splitTextToSize(line, 180);
+
+      if (y + wrappedLines.length * 6 > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.text(wrappedLines, 14, y);
+      y += wrappedLines.length * 6 + 3;
+    });
+
+    doc.save("FraudShield_Fraud_Report.pdf");
   };
 
   return (
@@ -613,23 +664,7 @@ useEffect(() => {
             />
           ) : (
             <>
-              {activeNav === "Fraud Alerts" ? (
-  <FraudAlerts
-    onOpenCaseManagement={() => {
-      setActiveNav("Overview");
-      setNotice(
-        "Open Case Management below the dashboard to investigate this alert."
-      );
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }}
-  />
-) : (
-  <>
-    <CaseManagement />
-
-    {/* Keep all your existing dashboard content here */}
-  </>
-)}
+              <CaseManagement />
 
           {backendError && (
             <div className="alert-banner">
@@ -741,14 +776,29 @@ useEffect(() => {
               <div>
                 <div className="section-title-row">
                   <h2>Recent transactions</h2>
+                  <button onClick={exportTransactionsCSV}>
+  Download CSV Report
+</button>
+<button onClick={exportTransactionsPDF}>
+  Download PDF Report
+</button>
                   <span className="count-badge">{transactions.length}</span>
                 </div>
                 <p>Review transaction details and current risk status.</p>
               </div>
-              <button className="button-secondary" onClick={openTransactionForm}>
-                <Plus size={16} />
-                Add transaction
-              </button>
+              <div className="welcome-actions">
+                <button
+                  className="button-secondary"
+                  onClick={exportTransactionsCSV}
+                  disabled={!filteredTransactions.length}
+                >
+                  Export CSV
+                </button>
+                <button className="button-secondary" onClick={openTransactionForm}>
+                  <Plus size={16} />
+                  Add transaction
+                </button>
+              </div>
             </div>
 
             <div className="table-toolbar">
@@ -787,19 +837,20 @@ useEffect(() => {
                     <th>Risk score</th>
                     <th>Status</th>
                     <th>Date</th>
+                    <th>Explanation</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="7" className="table-message">
+                      <td colSpan="8" className="table-message">
                         <RefreshCw size={18} className="spin" />
                         Loading your transactions...
                       </td>
                     </tr>
                   ) : filteredTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="table-message">
+                      <td colSpan="8" className="table-message">
                         <div className="empty-state">
                           <div className="empty-state-icon">
                             <Search size={22} />
@@ -863,6 +914,14 @@ useEffect(() => {
                           <StatusBadge status={transaction.status} />
                         </td>
                         <td className="date-cell">{formatDate(transaction.date)}</td>
+                        <td>
+                          <button
+                            className="text-button"
+                            onClick={() => setSelectedTransaction(transaction)}
+                          >
+                            Explain risk
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -883,9 +942,23 @@ useEffect(() => {
                 Refresh records <ArrowUpRight size={15} />
               </button>
             </div>
+            {selectedTransaction && (
+              <div>
+                <button
+                  className="text-button"
+                  onClick={() => setSelectedTransaction(null)}
+                >
+                  Close explanation
+                </button>
+                <FraudExplanation transaction={selectedTransaction} />
+              </div>
+            )}
           </section>
           <MlCsvDemo />
 
+              <section id="geographic-analysis">
+  <GeographicFraudAnalysis transactions={transactions} />
+</section>
           <footer className="app-footer">
             <span>© {new Date().getFullYear()} FraudShield</span>
             <span>Transaction monitoring dashboard</span>
@@ -987,31 +1060,6 @@ useEffect(() => {
                   />
                 </div>
               </label>
-
-              <section className="fraud-alerts-panel">
-  <h2>Fraud Alerts</h2>
-
-  {alertsLoading && <p>Loading alerts...</p>}
-
-  {alertsError && <p>{alertsError}</p>}
-
-  {!alertsLoading &&
-    !alertsError &&
-    fraudAlerts.length === 0 && (
-      <p>No fraud alerts found.</p>
-    )}
-
-  {fraudAlerts.map((alert, index) => (
-    <div className="fraud-alert-item" key={alert.id ?? index}>
-      <strong>
-        {alert.title || alert.message || "Fraud alert"}
-      </strong>
-      <p>Severity: {alert.severity || alert.risk_level || "Unknown"}</p>
-      <p>Status: {alert.status || "Open"}</p>
-    </div>
-  ))}
-</section>
-
 
               {formError && (
                 <div className="form-alert">

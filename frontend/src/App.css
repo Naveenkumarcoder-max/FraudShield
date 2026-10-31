@@ -2317,3 +2317,106 @@ body {
 .fraud-alert-item p {
   margin: 6px 0 0;
 }
+
+/* AI Fraud Explanation */
+.fraud-explanation {
+  margin: 24px 0;
+  padding: 24px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 16px;
+  background: var(--card-bg, #ffffff);
+  color: var(--text, #1f2937);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+
+.explanation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.explanation-header svg {
+  width: 28px;
+  height: 28px;
+  color: #6366f1;
+}
+
+.explanation-header h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.explanation-header span {
+  color: #8b5cf6;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.explanation-score {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.explanation-score strong {
+  font-size: 32px;
+  color: #6366f1;
+}
+
+.explanation-score span {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.fraud-explanation > p {
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.explanation-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.08);
+  font-size: 14px;
+}
+
+.fraud-explanation small {
+  display: block;
+  margin-top: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+.explanation-message {
+  padding: 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.transaction-details h4 {
+  margin-bottom: 12px;
+}
+
+.transaction-details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.transaction-details span {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.transaction-details strong {
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}

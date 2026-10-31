@@ -1,5 +1,4 @@
-
-import sqlite3
+﻿import sqlite3
 from pathlib import Path
 import os
 
@@ -7,6 +6,8 @@ if os.environ.get("VERCEL"):
     DATABASE_PATH = Path("/tmp/fraudshield.db")
 else:
     DATABASE_PATH = Path(__file__).resolve().parent / "fraudshield.db"
+
+
 def get_connection():
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
@@ -16,6 +17,18 @@ def get_connection():
 def initialize_database():
     with get_connection() as connection:
         connection.execute("""
+            CREATE TABLE IF NOT EXISTS fraud_watchlist (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_type TEXT NOT NULL,
+                identifier TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(entity_type, identifier)
+            )
+        """)
+
+        connection.execute("""
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 transaction_id TEXT NOT NULL UNIQUE,
@@ -24,6 +37,18 @@ def initialize_database():
                 location TEXT NOT NULL,
                 risk_score INTEGER NOT NULL,
                 status TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS fraud_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                transaction_id TEXT NOT NULL,
+                reporter_name TEXT,
+                reason TEXT NOT NULL,
+                description TEXT,
+                report_status TEXT NOT NULL DEFAULT 'Pending',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -47,6 +72,21 @@ def initialize_database():
                  risk_score, status)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, sample_transactions)
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS fraud_timeline (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                transaction_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                event_time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_timeline_transaction
+            ON fraud_timeline (transaction_id, event_time)
+        """)
 
         connection.commit()
 
